@@ -1,59 +1,61 @@
 import { reformatDate } from "./helper.js";
 import { OverlayScrollbars } from "./overlayscrollbars.esm.min.js";
 import { getData } from "./service.js";
+import { storage } from "./storage.js";
 
 const typesOperation = {
-    income: 'доход',
-    expenses: 'расход',
+  income: "доход",
+  expenses: "расход",
 };
 
-const financeReport = document.querySelector('.finance__report');
-const report = document.querySelector('.report');
-const reportOperationList = document.querySelector('.report__operation-list');
-const reportDates = document.querySelector('.report__dates');
+const financeReport = document.querySelector(".finance__report");
+const report = document.querySelector(".report");
+const reportOperationList = document.querySelector(".report__operation-list");
+const reportDates = document.querySelector(".report__dates");
+const reportTable = document.querySelector(".report__table");
 
-OverlayScrollbars(document.querySelector('.report'), {});
+OverlayScrollbars(document.querySelector(".report"), {});
 
 const closeReport = ({ target }) => {
-    if (target.closest('.report__close') ||
-     (!target.closest('.report')) && target !== financeReport)
-     {
+  if (
+    target.closest(".report__close") ||
+    (!target.closest(".report") && target !== financeReport)
+  ) {
+    gsap.to(report, {
+      opacity: 0,
+      scale: 0,
+      duration: 0.5,
+      ease: "power2.in",
+      onComplete() {
+        report.style.visibility = "hidden";
+      },
+    });
 
-        gsap.to(report, {
-            opacity: 0,
-            scale: 0,
-            duration: 0.5,
-            ease: 'power2.in',
-            onComplete() {
-                report.style.visibility = 'hidden';
-            },
-        });
-
-        document.removeEventListener('click', closeReport);
-     }  
+    document.removeEventListener("click", closeReport);
+  }
 };
 
 const openReport = () => {
-    report.style.visibility = 'visible';
+  report.style.visibility = "visible";
 
-gsap.to(report, {
+  gsap.to(report, {
     opacity: 1,
     scale: 1,
     duration: 0.5,
-    ease: 'power2.out'
-});
+    ease: "power2.out",
+  });
 
-    document.addEventListener('click', closeReport);
+  document.addEventListener("click", closeReport);
 };
 
 const renderReport = (data) => {
-reportOperationList.textContent = '';
-const reportRows = data.map(({category, amount, description, date, type, id}) => {
-    
-const reportRow = document.createElement('tr');
-reportRow.classList.add('report__row');
+  reportOperationList.textContent = "";
+  const reportRows = data.map(
+    ({ category, amount, description, date, type, id }) => {
+      const reportRow = document.createElement("tr");
+      reportRow.classList.add("report__row");
 
-reportRow.innerHTML = `
+      reportRow.innerHTML = `
 <td class="report__cell">${category}</td>
                 <td class="report__cell" style="text-align: right">${amount.toLocaleString()}&nbsp;₽</td>
                 <td class="report__cell">${description}</td>
@@ -61,54 +63,83 @@ reportRow.innerHTML = `
                 <td class="report__cell">${typesOperation[type]}</td>
                 <td class="report__action-cell">
                   <button
-                    class="report__button report__button_table" data-id=${id}>&#10006;</button>
+                    class="report__button report__button_table" data-del=${id}>&#10006;</button>
                 </td>
 `;
 
-return reportRow;
-});
+      return reportRow;
+    }
+  );
 
-reportOperationList.append(...reportRows);
+  reportOperationList.append(...reportRows);
 };
 
 export const reportControl = () => {
-reportOperationList.addEventListener('click', ({target}) => {
-console.log(target.dataset.id);
-});
+  reportTable.addEventListener("click", ({ target }) => {
+    const targetSort = target.closest("[data-sort]");
 
-    financeReport.addEventListener('click', async () => {
-        const textContent = financeReport.textContent;
-        financeReport.textContent = 'Загрузка...';
-        financeReport.disabled = true;
-    
-        const data = await getData('/finance');
-    
-        financeReport.textContent = textContent;
-        financeReport.disabled = false;
-        renderReport(data);
-        openReport();
-    });
-    
-    reportDates.addEventListener('submit', async (e) => {
-        e.preventDefault();
-    
+    if (targetSort) {
+      const sortField = targetSort.dataset.sort;
+
+      renderReport(
+        [...storage.data].sort((a, b) => {
+          if (targetSort.dataset.dir === "up") {
+            [a, b] = [b, a];
+          }
+          if (sortField === "amount") {
+            return parseFloat(a[sortField]) < parseFloat(b[sortField]) ? -1 : 1;
+          }
+          return a[sortField] < b[sortField] ? -1 : 1;
+        })
+      );
+      if (targetSort.dataset.dir === "up") {
+        targetSort.dataset.dir = "down";
+      } else {
+        targetSort.dataset.dir = "up";
+      }
+    }
+
+    const targetDel = target.closest("[data-del]");
+
+    if (targetDel) {
+      console.log(target.dataset.del); //дз
+    }
+  });
+
+  financeReport.addEventListener("click", async () => {
+    const textContent = financeReport.textContent;
+    financeReport.textContent = "Загрузка...";
+    financeReport.disabled = true;
+
+    const data = await getData("/finance");
+    storage.data = data;
+
+    financeReport.textContent = textContent;
+    financeReport.disabled = false;
+    renderReport(data);
+    openReport();
+  });
+
+  reportDates.addEventListener("submit", async (e) => {
+    e.preventDefault();
+
     const formData = Object.fromEntries(new FormData(reportDates));
-        
+
     const searchParams = new URLSearchParams();
-    
+
     if (formData.startDate) {
-        searchParams.append('startDate', formData.startDate);
+      searchParams.append("startDate", formData.startDate);
     }
-    
+
     if (formData.endDate) {
-        searchParams.append('endDate', formData.endDate);
+      searchParams.append("endDate", formData.endDate);
     }
-    
+
     const queryString = searchParams.toString();
-    
-    const url = queryString ? `/finance?${queryString}` : '/finance'
-        
-        const data = await getData(url);
-        renderReport(data);
-    });
+
+    const url = queryString ? `/finance?${queryString}` : "/finance";
+
+    const data = await getData(url);
+    renderReport(data);
+  });
 };
