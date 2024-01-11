@@ -1,9 +1,11 @@
+import { datalistControl } from "./dataListControl.js";
 import { financeConrtol } from "./financeControl.js";
 import { reportControl } from "./reportControl.js";
 
 const init = () => {
-financeConrtol();
-reportControl();
+  financeConrtol();
+  reportControl();
+  datalistControl();
 };
 
 init();

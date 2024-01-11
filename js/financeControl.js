@@ -1,14 +1,14 @@
-import { animationNumber, convertStringNumber } from "./helper.js";
-import { getData, postData } from "./service.js";
+import { animationNumber, convertStringNumber } from './helper.js';
+import { getData, postData } from './service.js';
 
-const financeForm = document.querySelector(".finance__form");
-const financeAmount = document.querySelector(".finance__amount");
+const financeForm = document.querySelector('.finance__form');
+const financeAmount = document.querySelector('.finance__amount');
 
 let amount = 0;
 
 financeAmount.textContent = amount;
 
-const addNewOpetaration = async (e) => {
+const addNewOpetaration = async e => {
   e.preventDefault();
 
   const typeOperation = e.submitter.dataset.typeOperation;
@@ -16,15 +16,15 @@ const addNewOpetaration = async (e) => {
   const financeFormDate = Object.fromEntries(new FormData(financeForm));
   financeFormDate.type = typeOperation;
 
-  const newOperation = await postData("/finance", financeFormDate);
+  const newOperation = await postData('/finance', financeFormDate);
 
   const changeAmount = Math.abs(convertStringNumber(newOperation.amount));
 
-  if (typeOperation === "income") {
+  if (typeOperation === 'income') {
     amount += changeAmount;
   }
 
-  if (typeOperation === "expenses") {
+  if (typeOperation === 'expenses') {
     amount -= changeAmount;
   }
 
@@ -33,14 +33,14 @@ const addNewOpetaration = async (e) => {
 };
 
 export const financeConrtol = async () => {
-  const operations = await getData("/finance");
+  const operations = await getData('/finance');
 
   amount = operations.reduce((acc, item) => {
-    if (item.type === "income") {
+    if (item.type === 'income') {
       acc += convertStringNumber(item.amount);
     }
 
-    if (item.type === "expenses") {
+    if (item.type === 'expenses') {
       acc -= convertStringNumber(item.amount);
     }
     return acc;
@@ -48,5 +48,5 @@ export const financeConrtol = async () => {
 
   animationNumber(financeAmount, amount);
 
-  financeForm.addEventListener("submit", addNewOpetaration);
+  financeForm.addEventListener('submit', addNewOpetaration);
 };
